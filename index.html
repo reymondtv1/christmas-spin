@@ -99,17 +99,6 @@ if(alreadyPicked){
 
       spinBtn.disabled = true; // prevent clicking again
     };
-
-    window.resetAll = async function() {
-      const snapshot = await getDocs(collection(db, "members"));
-      for (const docSnap of snapshot.docs) {
-        await updateDoc(doc(db, "members", docSnap.id), { picked: false, pickedBy: null });
-      }
-      resultDiv.innerText = "All names reset! 🎉";
-      spinBtn.disabled = false;
-      nameInput.value = "";
-      spinBtn.style.display = "none";
-    };
   </script>
 
   <style>
@@ -184,7 +173,6 @@ if(alreadyPicked){
     <input type="text" id="yourName" placeholder="Your name here" />
 
     <button id="spinBtn" onclick="spin()">Spin / Pick</button>
-    <button onclick="resetAll()">Reset Names</button>
 
     <div class="result" id="result">No one picked yet.</div>
   </div>
