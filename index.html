@@ -3,27 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🎄 Monito Monita Picker (No Cheat)</title>
+  <title>🎄 Monito Monita Picker</title>
 
   <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, collection, getDocs, query, where, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // 🔴 REPLACE THIS WITH YOUR OWN FIREBASE CONFIG
-const firebaseConfig = {
-  apiKey: "AIzaSyD3mkoALNybDbFyBQqavcXcxvulgQjMzw8",
-  authDomain: "monito-monita-a26d2.firebaseapp.com",
-  projectId: "monito-monita-a26d2",
-  storageBucket: "monito-monita-a26d2.firebasestorage.app",
-  messagingSenderId: "300079313908",
-  appId: "1:300079313908:web:9ffc358cf28a6e2ebb3fa1"
-};
+    // 🔴 Your Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyD3mkoALNybDbFyBQqavcXcxvulgQjMzw8",
+      authDomain: "monito-monita-a26d2.firebaseapp.com",
+      projectId: "monito-monita-a26d2",
+      storageBucket: "monito-monita-a26d2.firebasestorage.app",
+      messagingSenderId: "300079313908",
+      appId: "1:300079313908:web:9ffc358cf28a6e2ebb3fa1"
+    };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
     window.spin = async function () {
+      const spinBtn = document.getElementById("spinBtn");
+      spinBtn.disabled = true; // Disable button after one click
+
       const q = query(collection(db, "members"), where("picked", "==", false));
       const snapshot = await getDocs(q);
 
@@ -36,15 +39,24 @@ const firebaseConfig = {
       const randomDoc = docs[Math.floor(Math.random() * docs.length)];
       const data = randomDoc.data();
 
-      await updateDoc(doc(db, "members", randomDoc.id), {
-        picked: true
-      });
+      await updateDoc(doc(db, "members", randomDoc.id), { picked: true });
 
       document.getElementById("result").innerHTML = `
         <strong>You got:</strong><br><br>
         🎁 <b>${data.name}</b><br>
         Wishlist: <b>${data.wishlist ?? 'N/A'}</b>
       `;
+    };
+
+    window.resetAll = async function () {
+      const snapshot = await getDocs(collection(db, "members"));
+      for (const docSnap of snapshot.docs) {
+        await updateDoc(doc(db, "members", docSnap.id), { picked: false });
+      }
+      document.getElementById("result").innerText = "All names reset! 🎉";
+
+      // Re-enable Spin button
+      document.getElementById("spinBtn").disabled = false;
     };
   </script>
 
@@ -67,6 +79,14 @@ const firebaseConfig = {
       box-shadow: 0 15px 40px rgba(0,0,0,0.6);
       text-align: center;
     }
+    h1 {
+      margin-bottom: 6px;
+    }
+    p.note {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 12px;
+    }
     button {
       width: 100%;
       padding: 14px;
@@ -77,7 +97,11 @@ const firebaseConfig = {
       font-size: 17px;
       font-weight: bold;
       cursor: pointer;
-      margin-top: 14px;
+      margin-top: 10px;
+    }
+    button:disabled {
+      background: #475569;
+      cursor: not-allowed;
     }
     .result {
       margin-top: 20px;
@@ -85,15 +109,18 @@ const firebaseConfig = {
       padding: 18px;
       border-radius: 14px;
       font-size: 16px;
+      min-height: 60px;
     }
   </style>
 </head>
 <body>
   <div class="card">
     <h1>🎄 Monito Monita</h1>
-    <p style="font-size:13px;color:#94a3b8">One click only. No refresh cheating.</p>
+    <p class="note">One click only per person. Use Reset for next friend.</p>
 
-    <button onclick="spin()">Spin / Pick</button>
+    <button id="spinBtn" onclick="spin()">Spin / Pick</button>
+    <button onclick="resetAll()">Reset Names</button>
+
     <div class="result" id="result">No one picked yet.</div>
   </div>
 </body>
