@@ -10,7 +10,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, collection, getDocs, query, where, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // 🔴 Your Firebase config
+    // 🔴 Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyD3mkoALNybDbFyBQqavcXcxvulgQjMzw8",
       authDomain: "monito-monita-a26d2.firebaseapp.com",
@@ -23,54 +23,76 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    window.spin = async function () {
-      const spinBtn = document.getElementById("spinBtn");
-      spinBtn.disabled = true; // Disable after one click
+    const spinBtn = document.getElementById("spinBtn");
+    const nameInput = document.getElementById("yourName");
+    const resultDiv = document.getElementById("result");
 
-      const yourName = document.getElementById("yourName").value.trim();
-      if (!yourName) {
+    // Show Spin button only if user typed a name
+    nameInput.addEventListener("input", () => {
+      if(nameInput.value.trim() !== ""){
+        spinBtn.style.display = "block";
+      } else {
+        spinBtn.style.display = "none";
+      }
+    });
+
+    window.spin = async function() {
+      const yourName = nameInput.value.trim();
+      if(!yourName){
         alert("Please enter your name!");
-        spinBtn.disabled = false;
         return;
       }
 
-      // Get all remaining members
-      const q = query(collection(db, "members"), where("picked", "==", false));
-      const snapshot = await getDocs(q);
+      // Case-insensitive check for already picked
+      const allMembersSnap = await getDocs(collection(db, "members"));
+      const alreadyPicked = allMembersSnap.docs.some(docSnap => {
+        const pickedBy = docSnap.data().pickedBy || "";
+        return pickedBy.toLowerCase() === yourName.toLowerCase();
+      });
 
-      if (snapshot.empty) {
-        document.getElementById("result").innerText = "🎉 All names already picked!";
+      if(alreadyPicked){
+        resultDiv.innerText = "⚠️ You already picked!";
+        spinBtn.disabled = true;
         return;
       }
 
-      // Filter out self
-      const remaining = snapshot.docs.filter(docSnap => docSnap.data().name.toLowerCase() !== yourName.toLowerCase());
+      // Get remaining members excluding self
+      const remaining = allMembersSnap.docs.filter(docSnap => {
+        const data = docSnap.data();
+        return !data.picked && data.name.toLowerCase() !== yourName.toLowerCase();
+      });
 
-      if (remaining.length === 0) {
-        document.getElementById("result").innerText = "⚠️ No one left to pick except yourself!";
+      if(remaining.length === 0){
+        resultDiv.innerText = "🎉 All names already picked or only you remain!";
+        spinBtn.disabled = true;
         return;
       }
 
+      // Pick random remaining
       const randomDoc = remaining[Math.floor(Math.random() * remaining.length)];
       const data = randomDoc.data();
 
-      await updateDoc(doc(db, "members", randomDoc.id), { picked: true });
+      // Update picked person with pickedBy
+      await updateDoc(doc(db, "members", randomDoc.id), { picked: true, pickedBy: yourName });
 
-      document.getElementById("result").innerHTML = `
+      resultDiv.innerHTML = `
         <strong>You got:</strong><br><br>
         🎁 <b>${data.name}</b><br>
         Wishlist: <b>${data.wishlist ?? 'N/A'}</b>
       `;
+
+      spinBtn.disabled = true; // prevent clicking again
     };
 
-    // Reset all picked
-    window.resetAll = async function () {
+    window.resetAll = async function() {
       const snapshot = await getDocs(collection(db, "members"));
       for (const docSnap of snapshot.docs) {
-        await updateDoc(doc(db, "members", docSnap.id), { picked: false });
+        await updateDoc(doc(db, "members", docSnap.id), { picked: false, pickedBy: null });
       }
-      document.getElementById("result").innerText = "All names reset! 🎉";
-      document.getElementById("spinBtn").disabled = false;
+      resultDiv.innerText = "All names reset! 🎉";
+      spinBtn.disabled = false;
+      nameInput.value = "";
+      spinBtn.style.display = "none";
     };
   </script>
 
@@ -133,12 +155,15 @@
       font-size: 16px;
       min-height: 60px;
     }
+    #spinBtn {
+      display: none; /* hidden until name entered */
+    }
   </style>
 </head>
 <body>
   <div class="card">
     <h1>🎄 Monito Monita</h1>
-    <p class="note">Enter your name so you won't pick yourself!</p>
+    <p class="note">Type your name first. You cannot pick yourself and cannot pick again.</p>
 
     <input type="text" id="yourName" placeholder="Your name here" />
 
