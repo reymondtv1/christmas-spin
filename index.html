@@ -47,17 +47,6 @@
         Wishlist: <b>${data.wishlist ?? 'N/A'}</b>
       `;
     };
-
-    window.resetAll = async function () {
-      const snapshot = await getDocs(collection(db, "members"));
-      for (const docSnap of snapshot.docs) {
-        await updateDoc(doc(db, "members", docSnap.id), { picked: false });
-      }
-      document.getElementById("result").innerText = "All names reset! 🎉";
-
-      // Re-enable Spin button
-      document.getElementById("spinBtn").disabled = false;
-    };
   </script>
 
   <style>
@@ -119,7 +108,6 @@
     <p class="note">One click only per person. Use Reset for next friend.</p>
 
     <button id="spinBtn" onclick="spin()">Spin / Pick</button>
-    <button onclick="resetAll()">Reset Names</button>
 
     <div class="result" id="result">No one picked yet.</div>
   </div>
