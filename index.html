@@ -25,8 +25,16 @@
 
     window.spin = async function () {
       const spinBtn = document.getElementById("spinBtn");
-      spinBtn.disabled = true; // Disable button after one click
+      spinBtn.disabled = true; // Disable after one click
 
+      const yourName = document.getElementById("yourName").value.trim();
+      if (!yourName) {
+        alert("Please enter your name!");
+        spinBtn.disabled = false;
+        return;
+      }
+
+      // Get all remaining members
       const q = query(collection(db, "members"), where("picked", "==", false));
       const snapshot = await getDocs(q);
 
@@ -35,8 +43,15 @@
         return;
       }
 
-      const docs = snapshot.docs;
-      const randomDoc = docs[Math.floor(Math.random() * docs.length)];
+      // Filter out self
+      const remaining = snapshot.docs.filter(docSnap => docSnap.data().name !== yourName);
+
+      if (remaining.length === 0) {
+        document.getElementById("result").innerText = "⚠️ No one left to pick except yourself!";
+        return;
+      }
+
+      const randomDoc = remaining[Math.floor(Math.random() * remaining.length)];
       const data = randomDoc.data();
 
       await updateDoc(doc(db, "members", randomDoc.id), { picked: true });
@@ -47,7 +62,16 @@
         Wishlist: <b>${data.wishlist ?? 'N/A'}</b>
       `;
     };
-    
+
+    // Reset all picked
+    window.resetAll = async function () {
+      const snapshot = await getDocs(collection(db, "members"));
+      for (const docSnap of snapshot.docs) {
+        await updateDoc(doc(db, "members", docSnap.id), { picked: false });
+      }
+      document.getElementById("result").innerText = "All names reset! 🎉";
+      document.getElementById("spinBtn").disabled = false;
+    };
   </script>
 
   <style>
@@ -77,6 +101,14 @@
       color: #94a3b8;
       margin-bottom: 12px;
     }
+    input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+      margin-bottom: 12px;
+      font-size: 16px;
+    }
     button {
       width: 100%;
       padding: 14px;
@@ -105,11 +137,14 @@
 </head>
 <body>
   <div class="card">
-    <h1>Monito Monita</h1>
-    <h1>Created by: Reymond</h1>
-    <p class="note">One click only per person. Dont refresh</p>
+    <h1>🎄 Monito Monita</h1>
+    <p class="note">Enter your name so you won't pick yourself!</p>
+
+    <input type="text" id="yourName" placeholder="Your name here" />
 
     <button id="spinBtn" onclick="spin()">Spin / Pick</button>
+    <button onclick="resetAll()">Reset Names</button>
+
     <div class="result" id="result">No one picked yet.</div>
   </div>
 </body>
