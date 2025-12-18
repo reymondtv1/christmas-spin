@@ -44,7 +44,7 @@
       }
 
       // Filter out self
-      const remaining = snapshot.docs.filter(docSnap => docSnap.data().name !== yourName);
+      const remaining = snapshot.docs.filter(docSnap => docSnap.data().name.toLowerCase() !== yourName.toLowerCase());
 
       if (remaining.length === 0) {
         document.getElementById("result").innerText = "⚠️ No one left to pick except yourself!";
