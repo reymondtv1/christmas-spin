@@ -43,12 +43,28 @@
         return;
       }
 
-      // Case-insensitive check for already picked
-      const allMembersSnap = await getDocs(collection(db, "members"));
-      const alreadyPicked = allMembersSnap.docs.some(docSnap => {
-        const pickedBy = docSnap.data().pickedBy || "";
-        return pickedBy.toLowerCase() === yourName.toLowerCase();
-      });
+// Get all members
+const allMembersSnap = await getDocs(collection(db, "members"));
+
+// Check if input name exists in the list
+const isInList = allMembersSnap.docs.some(docSnap => docSnap.data().name.toLowerCase() === yourName.toLowerCase());
+if (!isInList) {
+  resultDiv.innerText = "⚠️ Your name is not on the list!";
+  spinBtn.disabled = false;
+  return;
+}
+
+// Check if this person already picked
+const alreadyPicked = allMembersSnap.docs.some(docSnap => {
+  const pickedBy = docSnap.data().pickedBy || "";
+  return pickedBy.toLowerCase() === yourName.toLowerCase();
+});
+if(alreadyPicked){
+  resultDiv.innerText = "⚠️ You already picked!";
+  spinBtn.disabled = true;
+  return;
+}
+
 
       if(alreadyPicked){
         resultDiv.innerText = "⚠️ You already picked!";
